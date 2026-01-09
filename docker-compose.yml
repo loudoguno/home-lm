@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with pgvector for blocks + embeddings
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: homelm-postgres
+    environment:
+      POSTGRES_DB: homelm
+      POSTGRES_USER: homelm
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-homelm_dev}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U homelm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Ollama for local LLM inference
+  ollama:
+    image: ollama/ollama
+    container_name: homelm-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    # Uncomment for GPU support
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - capabilities: [gpu]
+
+  # Home LM web application (build after npm install)
+  # app:
+  #   build: .
+  #   container_name: homelm-app
+  #   environment:
+  #     DATABASE_URL: postgres://homelm:${POSTGRES_PASSWORD:-homelm_dev}@postgres/homelm
+  #     OLLAMA_HOST: http://ollama:11434
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     ollama:
+  #       condition: service_started
+  #   ports:
+  #     - "3000:3000"
+
+  # Caddy reverse proxy (for LAN access)
+  # caddy:
+  #   image: caddy:2
+  #   container_name: homelm-caddy
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./Caddyfile:/etc/caddy/Caddyfile
+  #     - caddy_data:/data
+  #   depends_on:
+  #     - app
+
+volumes:
+  postgres_data:
+  ollama_data:
+  caddy_data:
