@@ -44,3 +44,6 @@ venv/
 models/
 *.bin
 *.gguf
+
+# Dolt database files (added by bd init)
+.dolt/
